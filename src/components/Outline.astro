@@ -2,7 +2,7 @@
 // The 5-part tutorial outline, following the EMNLP 2026 proposal. Part 1 sets
 // up the agent development loop; Parts 2 to 5 each follow the same arc: failure
 // patterns, diagnostics, fixes, and (where the proposal lists them) open
-// challenges. Safety is threaded throughout rather than being a standalone part.
+// challenges. Safety is threaded throughout, and Part 5 gathers it with evaluation.
 
 // Column layout for Parts 2 to 5.
 const ARC = [
@@ -37,8 +37,8 @@ const parts = [
         items: [
           'Scaffold and tools for multi-turn trajectories (Part 2)',
           'Post-training with SFT and RL (Part 3)',
-          'Evaluation and red teaming beyond single-turn benchmarks (Part 4)',
-          'Memory, skills, and test-time adaptation (Part 5)',
+          'Memory, skills, and test-time adaptation (Part 4)',
+          'Evaluation, safety, and open frontiers (Part 5)',
         ],
       },
     ],
@@ -49,25 +49,28 @@ const parts = [
     minutes: 40,
     lead: 'Zoey Sha Li',
     summary:
-      'Multi-turn interaction and tool use define the agent trajectory: model-generated actions interleaved with environment-generated observations. Standard RL frameworks treat a rollout as a single forward pass, so multi-turn agents need an orchestration layer to run rollouts, dispatch tools, and manage sandboxes.',
+      'Training an agent means turning what the model writes into calls, tokens, and rewards. We cover the tool-call protocol, how SFT and rewards get a model to call tools at all, and the RL system and environments behind agent training: search APIs, code sandboxes, and a container per software task. Every failure in this part sits at a seam between the model and its harness.',
     failures: [
-      'Token misattribution: environment and tool tokens leak into the loss, or re-tokenization at turn boundaries misaligns the loss mask and cached log-probs',
-      'Low-probability tool tokens trigger gradient-norm spikes that precede reward collapse',
-      'Overlong and timed-out trajectories wrongly scored as task failures',
+      'Cold start: the model barely calls its tools, so on-policy RL has little to reinforce',
+      "Token misattribution: the environment's tokens end up in the loss",
+      'Re-tokenization drift: decoding, parsing, and re-encoding a turn changes the token IDs the trainer sees',
+      "Environment errors scored as the policy's: failed environments, empty results that lead to void turns, and slow tools the policy learns to avoid",
     ],
     diagnostics: [
-      'Early warnings before collapse: falling reward standard deviation and gradient-norm spikes',
-      'Mask-alignment and log-prob consistency checks for re-tokenization drift',
-      'Per-turn inspection to locate void or unproductive turns',
+      'Tool calls per trajectory',
+      'Decode the trained tokens and count them against what the inference engine generated',
+      'Per-call token counts, and the token IDs when you keep them',
+      'Per-tool failure, timeout, and call rates; per-turn checks for void turns',
     ],
     fixes: [
-      'Mask environment and tool tokens so the policy trains only on what it controls',
-      'Token-in-token-out trajectories with importance-sampling correction for training-inference and off-policy mismatch',
-      'Filter void turns (SimpleTIR); mask rather than penalize overlong rollouts (DAPO)',
+      'An SFT prior whose data covers the behavior (SynPlanResearch-R1), or a reward that pays for each part of a call (ToolRL)',
+      'Build the loss mask with the sequence, 1 only for what the model wrote (Search-R1)',
+      'Token in, token out: ask the engine for token IDs and tokenize each new message on its own',
+      'Rerun or drop trajectories the environment broke, filter trajectories with void turns (SimpleTIR), and keep timeouts out of the reward',
     ],
     challenges: [
-      'Composable, transferable environment abstractions',
-      'Automatic synthesis of real-world environments at scale (Agent-World)',
+      'Environments that are expensive to run: computer use, scientific experiments, and robotics',
+      'Building environments at scale, and checking the verifiers that come with them (SWE-Universe)',
       'The harness as a safety surface once agents read untrusted observations and call external tools (GuardAgent)',
     ],
   },
@@ -77,30 +80,69 @@ const parts = [
     minutes: 40,
     lead: 'Zihan Wang',
     summary:
-      'Three failures of RL training: collapse under verifiable rewards, where the policy prematurely converges to a narrow set of behaviors; reward hacking under learned rewards, where it exploits an imperfect proxy; and the zero-gradient barrier, where no rollout succeeds and there is nothing to reinforce.',
+      'Three failures of the learning signal: collapse, where useful variation disappears; reward hacking, where optimization drifts from the intended objective; and no success signal, where no successful rollout enters training.',
     failures: [
-      'Collapse under verifiable rewards: entropy, KL mode, Echo Trap, format, and reasoning collapse, each invisible to the previous diagnostic',
-      'Reward hacking under learned rewards: reward-model overoptimization and RLHF-induced diversity loss',
-      'Zero-gradient barrier: the task is too hard, the pass rate is zero, and policy gradients have nothing to reinforce',
+      'Collapse: training gains disappear, success can reinforce a false explanation (RAGEN), and high entropy can hide generic, input-agnostic reasoning (RAGEN-2)',
+      'Reward hacking: more proxy reward can lower true quality (Constrained RLHF); agents retrieve answers from git history, move work outside a timed check, and pass hacks to other agents',
+      'No success signal: when every rollout in a group fails, centered rewards are zero and nothing is reinforced',
     ],
     diagnostics: [
-      'Collapse-aware proxies that flag collapse before reward drops (RAGEN-2)',
-      'A widening proxy vs true reward gap; behavioral probes that catch exploits reward curves miss',
-      'Zero within-group reward variance; pass@1 vs pass@k divergence',
+      'Input dependence: can a reasoning trace identify its own input? (cross-input scoring, RAGEN-2)',
+      'Outcome contrast: within-group reward variance, and noise from re-tokenization and training-inference mismatch',
+      'Proxy points found with independent evaluation; re-running fresh agents after sealing the answer channel',
+      'Reward histograms that tell all-fail groups from all-succeed ones',
     ],
     fixes: [
-      'Entropy-preserving clipping (DAPO) and uncertainty-guided exploration control (T²PO)',
-      'Constrained RLHF objectives that contain overoptimization',
-      'External signal with decreasing teacher information: off-policy traces (LUFFY), prefix-guided exploration (POPE), abstract hints (NuRL), staged dense-to-binary rewards',
+      'Filtering for informative prompt groups (RAGEN-2), exploration control at the update, token, and turn level (DAPO, T²PO), and importance-sampling correction for engine mismatch',
+      'Component targets for composite rewards (Constrained RLHF); measure the intended operation and repair the grader that actually runs',
+      'Partial and denser rewards (VAGEN, BAGEN), more samples on unresolved prompts (NGU), external information (LUFFY, POPE, NuRL), and dense-to-binary reward curricula',
+    ],
+    challenges: [
+      'Useful learning signal without narrowing task coverage',
+      'Separating environment randomness from learning signal',
+      'Testing whether reasoning is causally faithful to the input',
     ],
   },
   {
     n: 'Part 4',
-    title: 'Evaluation and Red Teaming',
+    title: 'Test-Time Scaling, Adaptation, and Recursive Self-Improvement',
+    minutes: 40,
+    lead: 'Hejie Cui',
+    summary:
+      'Four places where deployment-time improvement fails: test-time scaling, where more reasoning can lower accuracy; memory and skills, where what the agent keeps goes stale or makes it worse; recursive self-improvement, where the agent edits its own harness; and autoresearch, the same loop pointed at research.',
+    failures: [
+      'More reasoning can lower accuracy, and agents misjudge how much budget they have left (BAGEN)',
+      'Memories go stale without being contradicted (STALE), and self-written skills can do worse than none (SkillsBench)',
+      'Long search histories anchor a self-improving agent to its past attempts',
+      'Autoresearch runs leave flaws they notice unfixed, overclaim, and hack their own evaluations',
+    ],
+    diagnostics: [
+      'Accuracy against tokens, turns, tool calls, and improvement rounds',
+      'Probes of compressed memory beyond the compression ratio (context collapse, ACE)',
+      'Hidden-set replay of the final artifact (RSI-Exam), and regression checks on tasks the improver did not predict (AHE)',
+    ],
+    fixes: [
+      'Budget-aware stopping and budget trackers (BAGEN, Budget Tracker), and length penalties on steps that do not move the answer (SWAP)',
+      'RL-trained memory managers (Memory-R1, MemAgent), context folding, and strategies distilled from successes and failures (ReasoningBank)',
+      'Small edits kept only on held-out improvement, evolved on benchmark-disjoint tasks (ModularRSI, SkillOpt)',
+      'Keep the whole research record: agent-native research artifacts with the dead ends and the evidence behind each claim',
+    ],
+    challenges: [
+      'Attribution: which behavior did each harness edit actually change?',
+      'Predicting what an edit will break as well as what it fixes',
+      'Edits that compose without interfering',
+      'What a search loop should remember: shared memory helps, long history anchors',
+      'Oversight that holds when research agents learn from their reviewers',
+      'Verification beyond the benchmark the loop was tuned on',
+    ],
+  },
+  {
+    n: 'Part 5',
+    title: 'Evaluation, Safety, and Open Frontiers',
     minutes: 40,
     lead: 'Manling Li',
     summary:
-      'Leaderboard scores routinely fail to measure what we think. We show where static benchmarks break, how closed-loop evaluation restores signal, and how red teaming probes agent attack surfaces, including those flagged in Parts 2 and 3.',
+      'Leaderboard scores routinely fail to measure what we think. We show where static benchmarks break, how closed-loop evaluation restores signal, and how red teaming probes agent attack surfaces, including those flagged in Parts 2 to 4. The part closes with open frontiers and the synthesis.',
     failures: [
       'Contamination: test instances leak into training, so the score reflects recall',
       'Saturation: a benchmark stops discriminating as models reach its ceiling (SWE-bench)',
@@ -117,43 +159,6 @@ const parts = [
       'Dynamic, live, and asynchronous evaluation that resists memorization and restores headroom (ARE/Gaia2, Online-Mind2Web)',
       'Social, embodied, and out-of-sync recovery evaluation (SOTOPIA, SyncMind)',
       'Verifiable safety-policy reasoning as a runtime defense (ShieldAgent)',
-    ],
-  },
-  {
-    n: 'Part 5',
-    title: 'Test-Time Scaling, Adaptation, and Recursive Self-Improvement',
-    minutes: 40,
-    lead: 'Hejie Cui',
-    summary:
-      'Three failures of deployment-time improvement: test-time scaling, where more inference compute stops helping; memory and skills, where accumulated state degrades rather than aids; and recursive self-improvement, where a harness update appears to help locally but fails to generalize.',
-    failures: [
-      'Inverse-U test-time scaling: accuracy peaks, then degrades into over-reasoning loops, self-doubt loops, and reasoning collapse at long horizons',
-      'Memory failures by tier: context saturation, drift as facts grow stale, and retrieval that surfaces irrelevant or outdated state',
-      'Skill failures in self-authored, cached skills: generation errors, overgeneralization, and a verification gap',
-      'Harness-evolution failures: edits target the wrong component, overfit visible feedback, or silently regress behavior outside the development trace',
-    ],
-    diagnostics: [
-      'Accuracy vs token-budget and accuracy vs turn curves that expose the peak',
-      'Compression ratio paired with information-retention and functional-equivalence probes',
-      'Retrieval precision and recall',
-      'Executable, hidden-set replay of the final method or harness after sustained experimentation (RSI-Exam)',
-      'Component-level edit provenance that links each proposed change to its evidence, predicted effect, and held-out result',
-    ],
-    fixes: [
-      'Budget-aware early stopping (BAGEN) and stepwise length penalties (SWAP)',
-      'Compaction and externalized state: reasoning caches, learned memory, and memory-as-tool stores (Reasoning Cache, Free(), MEM1, Mem0, AWM)',
-      'Experience-to-strategy loops that distill trajectories into structured playbooks and retrieve them in later tasks (ACE, EvolveR)',
-      'Validated skill optimization: turn scored rollouts into bounded skill edits accepted only when held-out performance improves (SkillOpt)',
-      'Observable, modular harness evolution: localize recurring failures to editable components and evolve them on benchmark-disjoint tasks (Agentic Harness Engineering, ModularRSI)',
-      'Two-timescale meta-skill evolution: improve task skills in an inner loop and the improvement procedure itself in an outer loop (MetaSkill-Evolve)',
-    ],
-    challenges: [
-      'Evidence-based diagnosis and attribution of harness updates',
-      'Search spaces for composable harness updates',
-      'Diverse, compounding update trajectories',
-      'Experience stores for preserving and retiring reusable skills',
-      'Transfer, retention, rollback, and stopping criteria',
-      'Verifiable recursive improvement beyond benchmark-specific adaptation',
     ],
   },
 ];

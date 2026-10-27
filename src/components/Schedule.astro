@@ -2,12 +2,12 @@
 // Time-budgeted schedule for the 3.5-hour slot (about 3 hours of content plus a break).
 const rows = [
   { time: '0:00 - 0:10', part: 'Part 1', session: 'The Development Loop of AI Agents', detail: 'What an agent is and how one is built: the closed agent loop, the current agent landscape, and a build lifecycle that maps onto Parts 2 to 5.', who: 'Cheng Qian' },
-  { time: '0:10 - 0:50', part: 'Part 2', session: 'Agent Environments and Infrastructure', detail: 'Token misattribution, gradient spikes from low-probability tool tokens, and mis-scored overlong trajectories, with masking and importance-sampling fixes. Safety: the harness as an attack surface.', who: 'Zoey Sha Li' },
-  { time: '0:50 - 1:30', part: 'Part 3', session: 'Training Dynamics', detail: 'Collapse under verifiable rewards, reward hacking under learned rewards, and the zero-gradient barrier on tasks too hard to learn from. Safety: reward hacking under safety constraints.', who: 'Zihan Wang' },
+  { time: '0:10 - 0:50', part: 'Part 2', session: 'Agent Environments and Infrastructure', detail: "The tool-call protocol, getting a model to call tools, and the RL system and environments behind agent training; then three failures at the seams between model and harness: token masking, re-tokenization drift, and environment errors scored as the policy's. Safety: the harness as an attack surface.", who: 'Zoey Sha Li' },
+  { time: '0:50 - 1:30', part: 'Part 3', session: 'Training Dynamics', detail: 'Collapse, reward hacking, and the missing success signal: how the learning signal fails, how to see it, and how to restore it. Safety: agents that game their benchmarks.', who: 'Zihan Wang' },
   { time: '1:30 - 2:00', session: 'Coffee break', isBreak: true },
-  { time: '2:00 - 2:40', part: 'Part 4', session: 'Evaluation and Red Teaming', detail: 'Where static benchmarks break, closed-loop and contamination-resistant evaluation, and red teaming of agent attack surfaces.', who: 'Manling Li' },
-  { time: '2:40 - 3:20', part: 'Part 5', session: 'Test-Time Scaling, Adaptation, and Recursive Self-Improvement', detail: 'When more inference compute stops helping, how agent memory and self-authored skills degrade, and how evolving a harness can overfit local feedback.', who: 'Hejie Cui' },
-  { time: '3:20 - 3:30', session: 'Synthesis and Q&A', detail: 'Which fixes transfer, which are domain-specific, and what diagnostic infrastructure the community needs most; release of reproductions and trace examples.', who: 'All presenters' },
+  { time: '2:00 - 2:40', part: 'Part 4', session: 'Test-Time Scaling, Adaptation, and Recursive Self-Improvement', detail: 'When more reasoning lowers accuracy, how memory and self-written skills go wrong, how a self-improving agent anchors on its past and misses its own regressions, and autoresearch agents that hack their own evaluations.', who: 'Hejie Cui' },
+  { time: '2:40 - 3:20', part: 'Part 5', session: 'Evaluation, Safety, and Open Frontiers', detail: 'Where static benchmarks break, closed-loop and contamination-resistant evaluation, red teaming of agent attack surfaces, and open frontiers.', who: 'Manling Li' },
+  { time: '3:20 - 3:30', session: 'Synthesis and Q&A', detail: 'Which fixes transfer, which are domain-specific, and what diagnostic infrastructure the community needs most; release of reproductions and trace examples.', who: 'Manling Li' },
 ];
 ---
 <section id="schedule" class="section">
