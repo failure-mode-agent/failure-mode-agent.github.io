@@ -25,10 +25,10 @@ const parts = [
         cls: 'col-info',
         items: [
           'Open-source personal assistants (OpenClaw, Hermes Agent)',
-          'Coding agents (Devin, Claude Code)',
-          'Browser and computer-use agents (OpenAI Operator, ChatGPT Agent, Claude Computer Use)',
-          'Deep-research agents (DR Tulu)',
-          'Embodied agents (π*0.6)',
+          'Coding agents (Devin, Claude Code, Codex)',
+          'Browser and computer-use agents (ChatGPT Work, Claude Computer Use)',
+          'Deep-research agents (OpenAI deep research, Perplexity Deep Research)',
+          'Embodied agents (π0.7)',
         ],
       },
       {
@@ -54,7 +54,7 @@ const parts = [
       'Cold start: the model barely calls its tools, so on-policy RL has little to reinforce',
       "Token misattribution: the environment's tokens end up in the loss",
       'Re-tokenization drift: decoding, parsing, and re-encoding a turn changes the token IDs the trainer sees',
-      "Environment errors scored as the policy's: failed environments, empty results that lead to void turns, and slow tools the policy learns to avoid",
+      "Environment errors scored as the policy's: failed environments, empty results that lead to void turns, and slow tools whose timeouts can pass for a change in the policy",
     ],
     diagnostics: [
       'Tool calls per trajectory',
@@ -71,7 +71,6 @@ const parts = [
     challenges: [
       'Environments that are expensive to run: computer use, scientific experiments, and robotics',
       'Building environments at scale, and checking the verifiers that come with them (SWE-Universe)',
-      'The harness as a safety surface once agents read untrusted observations and call external tools (GuardAgent)',
     ],
   },
   {
@@ -112,7 +111,7 @@ const parts = [
       'Four places where deployment-time improvement fails: test-time scaling, where more reasoning can lower accuracy; memory and skills, where what the agent keeps goes stale or makes it worse; recursive self-improvement, where the agent edits its own harness; and autoresearch, the same loop pointed at research.',
     failures: [
       'More reasoning can lower accuracy, and agents misjudge how much budget they have left (BAGEN)',
-      'Memories go stale without being contradicted (STALE), and self-written skills can do worse than none (SkillsBench)',
+      'Memories go stale without being contradicted (STALE), and one rewrite that compresses a long context can leave the agent worse than no context at all (ACE)',
       'Long search histories anchor a self-improving agent to its past attempts',
       'Autoresearch runs leave flaws they notice unfixed, overclaim, and hack their own evaluations',
     ],
